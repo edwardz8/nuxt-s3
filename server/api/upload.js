@@ -1,36 +1,48 @@
-import { defineEventHandler } from 'h3';
-import multer from 'multer';
-import multerS3 from 'multer-s3';
-import { S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { v4 as uuid } from 'uuid'
 
-const s3 = new S3Client({
+export default defineEventHandler(async event => {
+  const body = await readMultipartFormData(event)
+  const allowedFormats = ['png', 'jpeg', 'webp', 'avif']
+
+  const s3Client = new S3Client({
     region: 'us-east-1',
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     },
-});
+  })
 
-const upload = multer({
-    storage: multerS3({
-        s3,
-        bucket: process.env.AWS_BUCKET,
-        acl: 'public-read',
-        key: function (req, file, cb) {
-            cb(null, Date.now().toString() + '-' + file.originalname);
-        }
+  const file = body?.find(item => item.name === 'file')
+
+  const ext = file?.filename?.split('.').pop()
+
+  if (ext && !allowedFormats.includes(ext)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Invalid file format.Only png,jpeg,webp and avif allowed',
     })
-});
+  }
 
-export default defineEventHandler(async (event) => {
-    return new Promise((resolve, reject) => {
-        upload.single('file')(event.node.req, event.node.res, (err) => {
-            if (err) {
-                console.error("Error uploading file:", err);
-                return reject({ error: "Upload failed" });
-            }
-            const url = `https://${process.env.AWS_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${event.node.req.file.key}`;
-            resolve({ url });
-        });
-    });
-});
+  const newFileName = uuid() + '.' + ext
+  const bucket = 'nuxt3-s3bucket'
+
+  const res = await s3Client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: newFileName,
+      ACL: 'public-read',
+      ContentType: file.type,
+      Body: file.data,
+    })
+  )
+
+  if (res) {
+    return newFileName
+  } else {
+    throw createError({
+      statusCode: 400,
+      message: 'Error uploading file',
+    })
+  }
+})
