@@ -18,30 +18,21 @@ const handleFileChange = (event) => {
     file.value = event.target.files[0];
 };
 
-const uploadFile = async () => {
-    if (!file.value) {
-        alert('Please select a file first.');
-        return;
-    }
+async function uploadFile(file) {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
 
-    const formData = new FormData();
-    formData.append('file', file.value);
+    const response = await $fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    })
 
-    try {
-        const { data, error } = await useFetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (data.value?.url) {
-            imageUrl.value = data.value.url;
-            alert('File uploaded successfully to S3!');
-        } else {
-            alert('File upload failed.' + (error.value?.data?.error || ''));
-        }
-    } catch (error) {
-        console.error('Upload error:', error);
-        alert('An error occurred while uploading the file.');
-    }
-};
+    // Handle successful upload
+    console.log('File uploaded successfully', response)
+  } catch (error) {
+    // Handle upload error
+    console.error('Failed to upload file', error)
+  }
+}
 </script>
