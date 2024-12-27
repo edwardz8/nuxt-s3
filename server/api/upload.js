@@ -1,11 +1,11 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { PutObjectCommand, S3 } from '@aws-sdk/client-s3'
 import { v4 as uuid } from 'uuid'
 
 export default defineEventHandler(async event => {
   const body = await readMultipartFormData(event)
   const allowedFormats = ['png', 'jpeg', 'webp', 'avif']
 
-  const s3Client = new S3Client({
+  const s3Client = new S3({
     region: 'us-east-1',
     credentials: {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,

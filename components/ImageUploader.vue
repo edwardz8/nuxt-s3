@@ -8,12 +8,15 @@
 
 <script setup>
 const file = ref(null);
+const imageUrl = ref('');
 
 const handleFileUpload = (event) => {
   file.value = event.target.files[0];
 };
 
-const uploadImage = async () => {
+
+
+/* const uploadImage = async () => {
   if (!file.value) return;
 
   const formData = new FormData();
@@ -24,15 +27,18 @@ const uploadImage = async () => {
       method: 'POST',
       body: formData
     });
+    imageUrl.value = `https://nuxt3-s3bucket.s3.amazonaws.com/${response}`;
 
-    // Handle successful upload
-    console.log('File uploaded successfully', response)
+    // After S3 upload, save to PostgreSQL
+    await $fetch('/api/save-image-metadata', {
+      method: 'POST',
+      body: JSON.stringify({
+        filename: response,
+        url: imageUrl.value,
+      })
+    });
   } catch (error) {
-    console.error('Upload failed:', error);
+    console.error('Upload or saving metadata failed:', error);
   }
-};
+}; */
 </script>
-
-<style scoped>
-/* Add any custom styles here */
-</style>
